@@ -20,7 +20,7 @@ class AuthService {
       User? user = cred.user;
 
       if (user != null) {
-        await _db.child("users").child(user.uid).set({
+        await _db.child(role).child(user.uid).set({
           "name": name,
           "role": role,
           "email": email,
@@ -52,7 +52,7 @@ class AuthService {
         throw 'Login failed';
       }
 
-      final snapshot = await _db.child("users").child(user.uid).child("role").get();
+      final snapshot = await _db.child(selectedRole).child(user.uid).child("role").get();
 
       if (!snapshot.exists) {
         await _auth.signOut();

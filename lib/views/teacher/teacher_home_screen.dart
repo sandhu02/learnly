@@ -5,8 +5,9 @@ import 'package:learnly/views/teacher/teacher_profile_screen.dart';
 import 'package:learnly/views/teacher/teacher_students_screen.dart';
 
 class TeacherHomeScreen extends StatefulWidget {
-  final String uid;
-  const TeacherHomeScreen({super.key, required this.uid});
+  final String uid; 
+  final String role; 
+  const TeacherHomeScreen({super.key, required this.uid, required this.role});
 
   @override
   State<TeacherHomeScreen> createState() => _TeacherHomeScreenState();
@@ -20,7 +21,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   void initState() {
     super.initState();
     _screens = [
-      TeacherHomeTab(uid: widget.uid),
+      TeacherHomeTab(role: widget.role , uid: widget.uid),
       const Center(child: TeacherCoursesScreen()),
       const Center(child: TeacherStudentsScreen()),
       const Center(child: TeacherProfileScreen()),

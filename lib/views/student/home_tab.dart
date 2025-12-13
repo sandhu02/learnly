@@ -3,7 +3,8 @@ import 'package:learnly/services/user_service.dart';
 
 class HomeTab extends StatefulWidget {
   final String uid;
-  const HomeTab({super.key, required this.uid});
+  final String role;
+  const HomeTab({super.key, required this.uid, required this.role});
 
   @override
   State<HomeTab> createState() => _HomeTabState();
@@ -26,7 +27,7 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   Future<void> fetchName() async {
-    final name = await userService.getUserName(widget.uid);
+    final name = await userService.getUserName(uid: widget.uid, role: widget.role);
     if (mounted) {
       setState(() {
         userName = name ?? "Student";

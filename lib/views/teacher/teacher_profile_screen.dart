@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:learnly/views/signin_screen.dart';
 
@@ -79,14 +80,22 @@ class TeacherProfileScreen extends StatelessWidget {
               icon: Icons.logout,
               label: "Logout",
               color: Colors.redAccent,
-              onTap: () {
-                // Navigate back to SignIn
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const SigninScreen()),
-                  (route) => false,
-                );
+              onTap: () async {
+                try {
+                  await FirebaseAuth.instance.signOut(); 
+                  
+                  // Navigate back to SignIn
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const SigninScreen()),
+                    (route) => false,
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Logout failed: $e")),
+                  );
+                }
               },
             ),
           ],

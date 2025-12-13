@@ -175,23 +175,24 @@ class _SigninScreenState extends State<SigninScreen> {
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => HomeScreen(uid: uid),
+                            builder: (_) => HomeScreen(role: isStudent ? "student" : "teacher" , uid: uid),
                           ),
                         );
                       } else {
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => TeacherHomeScreen(uid: uid),
+                            builder: (_) => TeacherHomeScreen(role: isStudent ? "student" : "teacher" , uid: uid),
                           ),
                         );
                       }
                     },
 
-                child: const Text(
-                  "Sign In",
-                  style: TextStyle(fontSize: 18, color: Colors.white),
-                ),
+                child: _loading ? CircularProgressIndicator() :
+                  const Text(
+                    "Sign In",
+                    style: TextStyle(fontSize: 18, color: Colors.white),
+                  ),
               ),
                                 
               const SizedBox(height: 30),

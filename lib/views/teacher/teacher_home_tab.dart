@@ -1,9 +1,13 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:learnly/services/course_service.dart';
 import 'package:learnly/services/user_service.dart';
 
 class TeacherHomeTab extends StatefulWidget {
   final String uid;
-  const TeacherHomeTab({super.key, required this.uid});
+  final String role;
+  const TeacherHomeTab({super.key, required this.uid, required this.role});
 
   @override
   State<TeacherHomeTab> createState() => _TeacherHomeTabState();
@@ -11,10 +15,10 @@ class TeacherHomeTab extends StatefulWidget {
 
 class _TeacherHomeTabState extends State<TeacherHomeTab> {
   final userService = UserService();
-  List<Map<String, dynamic>> yourCourses = [];
   List<Map<String, dynamic>> recentSubmissions = [];
   bool isLoading = true;
   String userName = "...";
+  List<Map<String, dynamic>> courses = [];
 
   @override
   void initState() {
@@ -24,7 +28,7 @@ class _TeacherHomeTabState extends State<TeacherHomeTab> {
   }
 
   Future<void> fetchName() async {
-    final name = await userService.getUserName(widget.uid);
+    final name = await userService.getUserName(role: widget.role , uid: widget.uid);
     if (mounted) {
       setState(() {
         userName = name ?? "Student";
@@ -33,48 +37,32 @@ class _TeacherHomeTabState extends State<TeacherHomeTab> {
   }
 
   Future<void> fetchTeacherData() async {
-    // Simulated backend data (no delay)
-    final fetchedCourses = [
-      {
-        "title": "Flutter Development",
-        "students": 42,
-        "image": "assets/course_icon.jpg",
-      },
-      {
-        "title": "Python for Data Science",
-        "students": 36,
-        "image": "assets/course_icon.jpg",
-      },
-      {
-        "title": "AI & Machine Learning",
-        "students": 28,
-        "image": "assets/course_icon.jpg",
-      },
-    ];
-
-    final fetchedSubmissions = [
-      {
-        "student": "Ali Raza",
-        "course": "Flutter Development",
-        "time": "2 hours ago",
-      },
-      {
-        "student": "Sara Khan",
-        "course": "Python for Data Science",
-        "time": "4 hours ago",
-      },
-      {
-        "student": "Bilal Ahmed",
-        "course": "AI & Machine Learning",
-        "time": "Yesterday",
-      },
-    ];
-
     setState(() {
-      yourCourses = fetchedCourses;
-      recentSubmissions = fetchedSubmissions;
-      isLoading = false;
+      isLoading = true;
     });
+
+    try {
+      // Get the current signed-in teacher UID
+      final teacherUid = FirebaseAuth.instance.currentUser!.uid;
+
+      // Fetch courses from your CourseService
+      final fetchedCourses = await CourseService().getTeacherCourses(
+        teacherUid: teacherUid,
+      );
+
+      setState(() {
+        courses = fetchedCourses;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load courses: $e')),
+      );
+    }
   }
 
   @override
@@ -135,10 +123,10 @@ class _TeacherHomeTabState extends State<TeacherHomeTab> {
             height: 190,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: yourCourses.length,
+              itemCount: courses.length,
               separatorBuilder: (_, __) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
-                final course = yourCourses[index];
+                final course = courses[index];
                 return Container(
                   width: 160,
                   decoration: BoxDecoration(
@@ -158,8 +146,8 @@ class _TeacherHomeTabState extends State<TeacherHomeTab> {
                       ClipRRect(
                         borderRadius:
                             const BorderRadius.vertical(top: Radius.circular(16)),
-                        child: Image.asset(
-                          course['image'] as String,
+                        child: Image.network(
+                          course['imageUrl'] as String,
                           height: 100,
                           width: double.infinity,
                           fit: BoxFit.cover,
@@ -179,9 +167,18 @@ class _TeacherHomeTabState extends State<TeacherHomeTab> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              "${course['students']} Students",
+                              "${course['enrolled'] ?? 0} Students",
                               style: const TextStyle(
                                   fontSize: 12, color: Colors.grey),
+                            ),
+                            Text(
+                              "Created on: ${DateFormat('yyyy-MM-dd').format(
+                                DateTime.fromMillisecondsSinceEpoch(course['createdAt'] ?? 0).toLocal()
+                              )}",
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 12,
+                              ),
                             ),
                           ],
                         ),

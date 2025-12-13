@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:learnly/views/signin_screen.dart';
 
@@ -212,13 +213,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: const Text("Cancel"),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pushAndRemoveUntil(
+            onPressed: () async {
+              try {
+                await FirebaseAuth.instance.signOut(); 
+
+                Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(
                       builder: (context) => const SigninScreen()),
                   (route) => false,
                 );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Logout failed: $e")),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
