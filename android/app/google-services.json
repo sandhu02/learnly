@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "1086926094630",
+    "project_id": "learnly-2eb6d",
+    "storage_bucket": "learnly-2eb6d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1086926094630:android:c4ae20dbc57f2cf75341e7",
+        "android_client_info": {
+          "package_name": "com.example.learnly"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1086926094630-c8l55jebnjvbuasei7icksng70o2jvil.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.learnly",
+            "certificate_hash": "f4831925fa4e5262d5c52b5eba82f769f45d424e"
+          }
+        },
+        {
+          "client_id": "1086926094630-2m15uie18qc8a3ubrb7i45lqsrimp9kj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD3tLw3OWI6Ui4iFldtgtR9wXzBRt1CSs4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1086926094630-2m15uie18qc8a3ubrb7i45lqsrimp9kj.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
