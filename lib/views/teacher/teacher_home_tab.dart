@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:learnly/services/course_service.dart';
 import 'package:learnly/services/user_service.dart';
+import 'package:learnly/views/student/ai_chat_screen.dart';
 
 class TeacherHomeTab extends StatefulWidget {
   final String uid;
@@ -192,13 +193,33 @@ class _TeacherHomeTabState extends State<TeacherHomeTab> {
 
           const SizedBox(height: 28),
 
-          // Recent Submissions
-          const Text(
-            "Recent Submissions",
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color.fromARGB(255, 17, 51, 96),
+          
+          // Chat / Study with AI Tile
+          Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            color: Colors.blue.shade50,
+            child: ListTile(
+              leading: const Icon(
+                Icons.smart_toy,
+                color: Color.fromARGB(255, 17, 51, 96),
+                size: 40,
+              ),
+              title: const Text(
+                "Get Help from AI",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: const Text(
+                "Chat with our AI assistant to learn or get help with your courses.",
+              ),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () {
+                // Navigate to AI chat screen
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AIChatScreen()),
+                );
+              },
             ),
           ),
           const SizedBox(height: 12),

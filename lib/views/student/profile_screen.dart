@@ -1,5 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:learnly/services/course_service.dart';
+import 'package:learnly/services/user_service.dart';
 import 'package:learnly/views/signin_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -10,10 +12,50 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  String userName = "Awais Sandhu";
-  String userRole = "Student";
-  String email = "awais.sandhu@example.com";
-  String joinedDate = "March 2024";
+  bool isLoading = false;
+
+  String userName = "...";
+  String userRole = "student";
+  String email = "...";
+  int? enrolledCourses;
+  int? joinedDate;
+
+  Future<void> fetchUserData() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final userData = await UserService().getUser(uid:uid , role: userRole);
+      
+      if (userData != null) {
+        setState(() {
+          userName = userData['name'] ?? "...";
+          email = userData['email'] ?? "...";
+          joinedDate = userData['createdAt'];
+          enrolledCourses = userData['enrolledCourses'] != null
+              ? (userData['enrolledCourses'] as Map).length
+              : 0;
+
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() => isLoading = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to load user data: $e")),
+      );  
+    }
+  
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchUserData();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,7 +140,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     _buildInfoRow(Icons.email, "Email", email),
                     const Divider(),
-                    _buildInfoRow(Icons.calendar_today, "Joined", joinedDate),
+                    _buildInfoRow(
+                      Icons.calendar_today,
+                      "Joined",
+                      joinedDate != null
+                          ? DateTime.fromMillisecondsSinceEpoch(joinedDate!)
+                              .toLocal()
+                              .toString()
+                              .split(' ')[0]
+                          : "N/A",
+                    ),
                   ],
                 ),
               ),
@@ -116,9 +167,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildStatItem("Enrolled", "5"),
-                    _buildStatItem("Completed", "3"),
-                    _buildStatItem("Progress", "60%"),
+                    _buildStatItem("Enrolled", enrolledCourses?.toString() ?? "0"),
+                    _buildStatItem("Completed", "0"),
+                    _buildStatItem("Progress", "0%"),
                   ],
                 ),
               ),

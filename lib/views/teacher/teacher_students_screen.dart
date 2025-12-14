@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:learnly/services/course_service.dart';
 
 class TeacherStudentsScreen extends StatefulWidget {
   const TeacherStudentsScreen({super.key});
@@ -10,6 +12,9 @@ class TeacherStudentsScreen extends StatefulWidget {
 class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
   bool isLoading = true;
   List<Map<String, dynamic>> students = [];
+  List<Map<String, dynamic>> courses = [];
+  Map<String, String> courseNames = {};
+
   String selectedCourse = 'All';
 
   @override
@@ -18,53 +23,90 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
     fetchStudents();
   }
 
-  Future<void> fetchStudents() async {
+  Future<String?> fetchCourseName(String courseUid) async {
     // Simulated backend data
-    // await Future.delayed(const Duration(milliseconds: 500));
+    try {
+      setState(() {
+        isLoading = true;
+      });
+      
+      final course = await CourseService().getCourseDetails(courseUid: courseUid);
 
-    final fetchedStudents = [
-      {
-        "name": "Ali Raza",
-        "course": "Flutter Development",
-        "progress": 85,
-        "lastSubmission": "2 hours ago",
-      },
-      {
-        "name": "Sara Khan",
-        "course": "Python for Data Science",
-        "progress": 78,
-        "lastSubmission": "4 hours ago",
-      },
-      {
-        "name": "Bilal Ahmed",
-        "course": "AI & Machine Learning",
-        "progress": 65,
-        "lastSubmission": "Yesterday",
-      },
-      {
-        "name": "Hina Tariq",
-        "course": "Flutter Development",
-        "progress": 92,
-        "lastSubmission": "3 days ago",
-      },
-      {
-        "name": "Usman Malik",
-        "course": "Python for Data Science",
-        "progress": 55,
-        "lastSubmission": "5 days ago",
-      },
-    ];
+      if (course != null) {
+        setState(() {
+          isLoading = false;
+        });
 
+        return course['title'] ?? 'N/A';
+      }
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load course details: $e')),
+      );
+    }
     setState(() {
-      students = fetchedStudents;
       isLoading = false;
     });
+  } 
+
+  Future<void> fetchStudents() async {
+    try {
+      setState(() => isLoading = true);
+
+      final teacherId = FirebaseAuth.instance.currentUser!.uid;
+      final fetchedStudents =
+          await CourseService().getAllEnrolledStudentsForTeacher(teacherUid: teacherId);
+
+      if (fetchedStudents.isEmpty) {
+        setState(() => isLoading = false);
+        return;
+      }
+
+      // Collect all courseIds from students
+      final courseIds = <String>{};
+      for (final student in fetchedStudents) {
+        final enrolled = student['enrolledCourses'] as Map<dynamic, dynamic>?;
+        if (enrolled != null) {
+          courseIds.addAll(enrolled.keys.map((e) => e.toString()));
+        }
+      }
+
+      // Fetch all course details in parallel
+      final futures = courseIds.map((id) async {
+        final course = await CourseService().getCourseDetails(courseUid: id);
+        return {id: course?['title'] ?? 'N/A'};
+      });
+
+      final results = await Future.wait(futures);
+
+      // Combine results into courseNames map
+      courseNames = {for (var r in results) ...r};
+
+      setState(() {
+        students = fetchedStudents;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() => isLoading = false);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Failed to load students: $e')));
+    }
   }
 
   List<String> get allCourses {
-    final uniqueCourses = students.map((s) => s['course'] as String).toSet();
-    return ['All', ...uniqueCourses];
+    final courseSet = <String>{};
+
+    for (final student in students) {
+      final enrolled = student['enrolledCourses'] as Map<dynamic, dynamic>?;
+      if (enrolled != null) {
+        courseSet.addAll(enrolled.keys.map((k) => k.toString()));
+      }
+    }
+
+    return ['All', ...courseSet];
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -116,6 +158,29 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
                       itemCount: filteredStudents.length,
                       itemBuilder: (context, index) {
                         final student = filteredStudents[index];
+
+                        final studentName = student['name'] ?? 'Unknown';
+                        final studentEmail = student['email'] ?? 'Unknown';
+                        final enrolledAt = student['enrolledAt'] ?? 'Unknown';
+
+                        final enrolledCourses = student['enrolledCourses'] as Map<dynamic, dynamic>?;
+
+                        String courseName = 'N/A';
+                        String enrolledAtStr = 'N/A';
+
+                        if (enrolledCourses != null && enrolledCourses.isNotEmpty) {
+                          // Pick the first course for display
+                          final firstCourseId = enrolledCourses.keys.first.toString();
+                          final courseData = enrolledCourses[firstCourseId] as Map<dynamic, dynamic>?;
+
+                          courseName = courseNames[firstCourseId] ?? 'N/A';
+                          if (courseData != null && courseData['enrolledAt'] != null) {
+                            final enrolledAt = courseData['enrolledAt'] as int;
+                            enrolledAtStr =
+                                DateTime.fromMillisecondsSinceEpoch(enrolledAt).toLocal().toString().split(' ')[0];
+                          }
+                        }
+
                         return Card(
                           margin: const EdgeInsets.symmetric(vertical: 8),
                           shape: RoundedRectangleBorder(
@@ -124,41 +189,33 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
                           elevation: 2,
                           child: ListTile(
                             leading: CircleAvatar(
-                              backgroundColor:
-                                  const Color.fromARGB(255, 17, 51, 96),
+                              backgroundColor: const Color.fromARGB(255, 17, 51, 96),
                               child: Text(
-                                student['name'][0],
-                                style: const TextStyle(
-                                    color: Colors.white, fontSize: 18),
+                                studentName[0], // first letter of name
+                                style: const TextStyle(color: Colors.white, fontSize: 18),
                               ),
                             ),
                             title: Text(
-                              student['name'],
+                              studentName,
                               style: const TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                            trailing: Text(
+                              "Enrolled on: $enrolledAtStr"
                             ),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  student['course'],
+                                  courseName,
                                   style: const TextStyle(color: Colors.black54),
                                 ),
                                 const SizedBox(height: 4),
-                                LinearProgressIndicator(
-                                  value: student['progress'] / 100,
-                                  backgroundColor: Colors.grey[300],
-                                  color: const Color.fromARGB(255, 17, 51, 96),
-                                  minHeight: 6,
+                                Text(
+                                  studentEmail,
+                                  style: const TextStyle(color: Colors.black54),
                                 ),
                                 const SizedBox(height: 4),
-                                Text(
-                                  "Progress: ${student['progress']}% | Last submission: ${student['lastSubmission']}",
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
-                                  ),
-                                ),
                               ],
                             ),
                           ),

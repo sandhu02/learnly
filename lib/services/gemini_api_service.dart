@@ -41,9 +41,6 @@ class GeminiApiService {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
 
-      print("Gemini response: $data");
-
-
       final String aiText =
         data['candidates']?[0]?['content']?['parts']?[0]?['text'] ??
         "No response from AI";
@@ -57,8 +54,9 @@ class GeminiApiService {
 }
 
 final aiService = GeminiApiService(
-  apiKey: "AIzaSyCVnxRBJgy2kOVowQhTNHpjN3TwNIO0Q7s", // 👈 risky in frontend
+  apiKey: apiKey, // 👈 risky in frontend
   projectId: "1086926094630",
 );
 
 
+final apiKey = "AIzaSyCVnxRBJgy2kOVowQhTNHpjN3TwNIO0Q7s";

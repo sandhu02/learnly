@@ -8,7 +8,7 @@ class TeacherProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const primaryColor = Color.fromARGB(255, 17, 51, 96);
-
+    
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       body: Padding(

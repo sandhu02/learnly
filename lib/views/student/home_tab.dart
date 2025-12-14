@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:learnly/services/course_service.dart';
 import 'package:learnly/services/user_service.dart';
+import 'package:learnly/views/student/ai_camera_screen.dart';
 import 'package:learnly/views/student/ai_chat_screen.dart';
 
 class HomeTab extends StatefulWidget {
@@ -216,30 +217,32 @@ class _HomeTabState extends State<HomeTab> {
 
           const SizedBox(height: 24),
 
-          // Announcements / News
-          const Text(
-            "Announcements",
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color.fromARGB(255, 17, 51, 96),
-            ),
-          ),
-          const SizedBox(height: 10),
+          // Image Homework Help Tile
           Card(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            elevation: 2,
+            margin: const EdgeInsets.only(bottom: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            color: Colors.green.shade50,
             child: ListTile(
-              leading: const Icon(Icons.campaign,
-                  color: Color.fromARGB(255, 17, 51, 96)),
+              leading: const Icon(
+                Icons.image_search,
+                color: Color.fromARGB(255, 17, 51, 96),
+                size: 40,
+              ),
               title: const Text(
-                "New AI Course Released!",
+                "Homework Help",
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               subtitle: const Text(
-                "Learn about the fundamentals of Artificial Intelligence with our latest course.",
+                "Take an image of your homework problem and get step-by-step solutions.",
               ),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () {
+                // Navigate to Mathway/Image Homework Help screen
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const MathwayHelpScreen()),
+                );
+              },
             ),
           ),
         ],

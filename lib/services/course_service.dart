@@ -101,7 +101,6 @@ class CourseService {
         }),
       ]);
     } catch (e) {
-      print("Enrollment failed: $e");
       throw Exception("Enrollment failed: $e");
     }
   }
@@ -144,4 +143,75 @@ class CourseService {
     return courses;
   }
 
+  Future<List<Map<String, dynamic>>> getAllEnrolledStudentsForTeacher({
+    required String teacherUid,
+  }) async {
+    final DatabaseReference db = FirebaseDatabase.instance.ref();
+
+    // 1️⃣ Get teacher courses
+    final coursesSnap =
+        await db.child('teacher').child(teacherUid).child('courses').get();
+
+    if (!coursesSnap.exists) return [];
+
+    final Map<dynamic, dynamic> courses =
+        coursesSnap.value as Map<dynamic, dynamic>;
+
+    // 2️⃣ Collect unique student UIDs
+    final Set<String> studentUids = {};
+
+    for (final courseEntry in courses.entries) {
+      final enrolledStudents = courseEntry.value['enrolledStudents'];
+      if (enrolledStudents != null) {
+        final Map<dynamic, dynamic> studentsMap =
+            enrolledStudents as Map<dynamic, dynamic>;
+
+        studentUids.addAll(
+          studentsMap.keys.map((e) => e.toString()),
+        );
+      }
+    }
+
+    if (studentUids.isEmpty) return [];
+
+    // 3️⃣ Fetch student profiles in parallel
+    final futures = studentUids.map((uid) async {
+      final snap = await db.child('student').child(uid).get();
+      if (!snap.exists) return null;
+
+      final data = Map<String, dynamic>.from(
+        snap.value as Map<dynamic, dynamic>,
+      );
+
+      data['uid'] = uid; // attach uid
+      return data;
+    });
+
+    // 4️⃣ Resolve futures and remove nulls
+    final students = (await Future.wait(futures))
+        .whereType<Map<String, dynamic>>()
+        .toList();
+
+    return students;
+  }
+
+  Future <Map<String, dynamic>?> getCourseDetails({
+    required String courseUid,
+  }) async {
+    final snapshot = await _db.child("courses").child(courseUid).get();
+
+    if (!snapshot.exists || snapshot.value == null) {
+      return null;
+    }
+
+    final Map<dynamic, dynamic> rawData =
+        snapshot.value as Map<dynamic, dynamic>;
+
+    // Convert to Map<String, dynamic>
+    final Map<String, dynamic> data =
+        Map<String, dynamic>.from(rawData);
+
+    return data;
+  }
 }  
+

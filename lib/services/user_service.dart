@@ -5,14 +5,27 @@ class UserService {
   final DatabaseReference _db = FirebaseDatabase.instance.ref();
 
   /// Get user once
-  Future<AppUser?> getUser(String uid) async {
-    final snapshot = await _db.child(uid).get();
+  Future<Map<String, dynamic>?> getUser({
+    required String uid,
+    required String role,
+  }) async {
+    final snapshot = await _db.child(role).child(uid).get();
 
-    if (!snapshot.exists) return null;
+    if (!snapshot.exists || snapshot.value == null) {
+      return null;
+    }
 
-    final data = snapshot.value as Map<dynamic, dynamic>;
-    return AppUser.fromMap(uid, data);
+    final Map<dynamic, dynamic> rawData =
+        snapshot.value as Map<dynamic, dynamic>;
+
+    // Convert to Map<String, dynamic>
+    final Map<String, dynamic> data =
+        Map<String, dynamic>.from(rawData);
+
+
+    return data;
   }
+
 
   /// Listen to user changes (real-time)
   Stream<AppUser?> streamUser(String uid) {
