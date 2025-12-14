@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:learnly/services/course_service.dart';
 import 'package:learnly/services/user_service.dart';
 import 'package:learnly/views/signin_screen.dart';
 

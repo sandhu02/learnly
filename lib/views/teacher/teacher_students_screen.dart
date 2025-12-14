@@ -23,33 +23,6 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
     fetchStudents();
   }
 
-  Future<String?> fetchCourseName(String courseUid) async {
-    // Simulated backend data
-    try {
-      setState(() {
-        isLoading = true;
-      });
-      
-      final course = await CourseService().getCourseDetails(courseUid: courseUid);
-
-      if (course != null) {
-        setState(() {
-          isLoading = false;
-        });
-
-        return course['title'] ?? 'N/A';
-      }
-
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load course details: $e')),
-      );
-    }
-    setState(() {
-      isLoading = false;
-    });
-  } 
-
   Future<void> fetchStudents() async {
     try {
       setState(() => isLoading = true);
@@ -161,7 +134,6 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
 
                         final studentName = student['name'] ?? 'Unknown';
                         final studentEmail = student['email'] ?? 'Unknown';
-                        final enrolledAt = student['enrolledAt'] ?? 'Unknown';
 
                         final enrolledCourses = student['enrolledCourses'] as Map<dynamic, dynamic>?;
 
