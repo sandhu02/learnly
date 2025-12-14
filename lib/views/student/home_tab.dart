@@ -1,5 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:learnly/services/course_service.dart';
 import 'package:learnly/services/user_service.dart';
+import 'package:learnly/views/student/ai_chat_screen.dart';
 
 class HomeTab extends StatefulWidget {
   final String uid;
@@ -13,7 +16,6 @@ class HomeTab extends StatefulWidget {
 class _HomeTabState extends State<HomeTab> {
   final userService = UserService();
   String userName = "...";
-
 
   List<Map<String, dynamic>> featuredCourses = [];
   List<Map<String, dynamic>> continueCourses = [];
@@ -36,44 +38,22 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   Future<void> fetchData() async {
+    try {
+      final studentUid = FirebaseAuth.instance.currentUser!.uid;
+      final fetchedCourses = await CourseService().getEnrolledCourses(
+        studentUid: studentUid,
+      );
 
-    // Simulated backend data
-    final fetchedFeaturedCourses = [
-      {
-        "title": "Flutter for Beginners",
-        "instructor": "John Doe",
-        "image": "assets/course_icon.jpg",
-      },
-      {
-        "title": "Python Fundamentals",
-        "instructor": "Sarah Khan",
-        "image": "assets/course_icon.jpg",
-      },
-      {
-        "title": "Machine Learning Basics",
-        "instructor": "Ali Ahmed",
-        "image": "assets/course_icon.jpg",
-      },
-    ];
-
-    final fetchedContinueCourses = [
-      {
-        "title": "Flutter for Beginners",
-        "progress": 0.8,
-        "image": "assets/course_icon.jpg",
-      },
-      {
-        "title": "Python Fundamentals",
-        "progress": 0.4,
-        "image": "assets/course_icon.jpg",
-      },
-    ];
-
-    setState(() {
-      featuredCourses = fetchedFeaturedCourses;
-      continueCourses = fetchedContinueCourses;
-      isLoading = false;
-    });
+      setState(() {
+        featuredCourses = fetchedCourses;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to load enrolled courses: $e")),
+      );
+    }
   }
 
   @override
@@ -157,8 +137,8 @@ class _HomeTabState extends State<HomeTab> {
                       ClipRRect(
                         borderRadius:
                             const BorderRadius.vertical(top: Radius.circular(16)),
-                        child: Image.asset(
-                          course['image'] as String,
+                        child: Image.network(
+                          course['imageUrl'] as String,
                           height: 100,
                           width: double.infinity,
                           fit: BoxFit.cover,
@@ -178,7 +158,7 @@ class _HomeTabState extends State<HomeTab> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              "By ${course['instructor']}",
+                              "Enrolled on : ${DateTime.fromMillisecondsSinceEpoch((course['enrolledAt'] ?? 0) as int).toLocal().toString().split(' ')[0]}",
                               style: const TextStyle(
                                   fontSize: 12, color: Colors.grey),
                             ),
@@ -204,46 +184,34 @@ class _HomeTabState extends State<HomeTab> {
             ),
           ),
           const SizedBox(height: 12),
-          Column(
-            children: continueCourses.map((course) {
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                child: ListTile(
-                  leading: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.asset(
-                      course['image'] as String,
-                      width: 50,
-                      height: 50,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  title: Text(course['title'] as String,
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 4),
-                      LinearProgressIndicator(
-                        value: course['progress'] as double,
-                        color: const Color.fromARGB(255, 17, 51, 96),
-                        backgroundColor: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(10),
-                        minHeight: 6,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        "Progress: ${( (course['progress'] as double) * 100).toInt()}%",
-                        style:
-                            const TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
+
+          // Chat / Study with AI Tile
+          Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            color: Colors.blue.shade50,
+            child: ListTile(
+              leading: const Icon(
+                Icons.smart_toy,
+                color: Color.fromARGB(255, 17, 51, 96),
+                size: 40,
+              ),
+              title: const Text(
+                "Study with AI",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: const Text(
+                "Chat with our AI assistant to learn or get help with your courses.",
+              ),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () {
+                // Navigate to AI chat screen
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AIChatScreen()),
+                );
+              },
+            ),
           ),
 
           const SizedBox(height: 24),

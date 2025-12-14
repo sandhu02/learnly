@@ -50,19 +50,31 @@ class UserService {
       required String videoUrl, 
     }
   ) async {
-    final DatabaseReference courseRef =
+    final DatabaseReference teachercourseRef =
       _db.child("teacher").child(teacherUid).child("courses").push();
 
-      final String courseUid = courseRef.key!;  
+    final DatabaseReference courseRef =
+      _db.child("courses").child(teachercourseRef.key!);
 
-      await courseRef.set({
-        "courseUid": courseUid,
+      final String teachercourseUid = teachercourseRef.key!;  
+
+      await teachercourseRef.set({
+        "courseUid": teachercourseUid,
         "title": title,
         "description": description,
         "imageUrl": imageUrl,
         "videoUrl": videoUrl,
         "createdAt": DateTime.now().millisecondsSinceEpoch,
       });
-
+      
+      await courseRef.set({
+        "teacherUid": teacherUid,
+        "courseUid": teachercourseUid,
+        "title": title,
+        "description": description,
+        "imageUrl": imageUrl,
+        "videoUrl": videoUrl,
+        "createdAt": DateTime.now().millisecondsSinceEpoch,
+      });
   } 
 }

@@ -1,4 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:learnly/services/course_service.dart';
+import 'package:learnly/views/teacher/course_detail_screen.dart';
 
 class CoursesScreen extends StatefulWidget {
   const CoursesScreen({super.key});
@@ -11,82 +14,107 @@ class _CoursesScreenState extends State<CoursesScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  final List<Map<String, dynamic>> allCourses = [
-    {
-      "title": "Flutter for Beginners",
-      "instructor": "John Doe",
-      "image": "assets/course_icon.jpg",
-      "progress": 0.8,
-      "isEnrolled": true
-    },
-    {
-      "title": "Python Fundamentals",
-      "instructor": "Sarah Khan",
-      "image": "assets/course_icon.jpg",
-      "progress": 0.4,
-      "isEnrolled": true
-    },
-    {
-      "title": "Machine Learning Basics",
-      "instructor": "Ali Ahmed",
-      "image": "assets/course_icon.jpg",
-      "progress": 0.0,
-      "isEnrolled": false
-    },
-    {
-      "title": "UI/UX Design Principles",
-      "instructor": "Emily Brown",
-      "image": "assets/course_icon.jpg",
-      "progress": 0.0,
-      "isEnrolled": false
-    },
-  ];
+  bool isLoading = true;
+  List<Map<String, dynamic>> courses = [];
+  List<Map<String, dynamic>> enrolledCourses = [];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
+    fetchAllCourses();
+    fetchEnrolledCourses();
+  }
+
+  Future<void> fetchAllCourses() async {
+    try {
+      final fetchedCourses = await CourseService().getAllCourses();
+      setState(() {
+        courses = fetchedCourses;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to load courses: $e")),
+      );
+    }
+  }
+
+  Future <void> enrollInCourse(
+    {required String courseUid}
+  ) async {
+    try {
+      await CourseService().enrollInCourse(
+        courseUid: courseUid,
+        studentUid: FirebaseAuth.instance.currentUser!.uid,
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Enrolled successfully")),
+      );
+
+      // Refresh courses to update enrollment status
+      await fetchAllCourses();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to enroll: $e")),
+      );
+    }
+  }
+
+  Future<void> fetchEnrolledCourses() async {
+    try {
+      final studentUid = FirebaseAuth.instance.currentUser!.uid;
+      final fetchedCourses = await CourseService().getEnrolledCourses(
+        studentUid: studentUid,
+      );
+
+      setState(() {
+        enrolledCourses = fetchedCourses;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to load enrolled courses: $e")),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final enrolledCourses =
-        allCourses.where((c) => c['isEnrolled'] == true).toList();
-    final recommendedCourses =
-        allCourses.where((c) => c['isEnrolled'] == false).toList();
 
-    return Column(
-      children: [
-        Container(
-          color: const Color.fromARGB(255, 17, 51, 96),
-          child: TabBar(
-            controller: _tabController,
-            indicatorColor: Colors.white,
-            indicatorWeight: 3,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white70,
-            tabs: const [
-              Tab(text: "All"),
-              Tab(text: "Enrolled"),
-              Tab(text: "Recommended"),
-            ],
-          ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Courses"),
+        backgroundColor: const Color.fromARGB(255, 17, 51, 96),
+        foregroundColor: Colors.white,
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: Colors.white,
+          tabs: const [
+            Tab(text: "All"),
+            Tab(text: "Enrolled"),
+          ],
         ),
-        Expanded(
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildCourseGrid(allCourses),
-              _buildCourseGrid(enrolledCourses),
-              _buildCourseGrid(recommendedCourses),
-            ],
-          ),
-        ),
-      ],
+      ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _buildCourseGrid(courses, isEnrolledTab: false),
+                _buildCourseGrid(enrolledCourses, isEnrolledTab: true),
+              ],
+            ),
     );
   }
 
-  Widget _buildCourseGrid(List<Map<String, dynamic>> courses) {
+  Widget _buildCourseGrid(
+    List<Map<String, dynamic>> courses,
+    {required bool isEnrolledTab}
+  ) {
     if (courses.isEmpty) {
       return const Center(
         child: Text(
@@ -102,12 +130,13 @@ class _CoursesScreenState extends State<CoursesScreen>
         itemCount: courses.length,
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          childAspectRatio: 0.78,
+          childAspectRatio: 0.75,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
         ),
         itemBuilder: (context, index) {
           final course = courses[index];
+
           return Card(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
@@ -116,16 +145,23 @@ class _CoursesScreenState extends State<CoursesScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                /// Course Image
                 ClipRRect(
                   borderRadius:
                       const BorderRadius.vertical(top: Radius.circular(16)),
-                  child: Image.asset(
-                    course['image'],
-                    height: 80,
+                  child: Image.network(
+                    course['imageUrl'],
+                    height: 110,
                     width: double.infinity,
                     fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      height: 110,
+                      color: Colors.grey[300],
+                      child: const Icon(Icons.image, size: 40),
+                    ),
                   ),
                 ),
+
                 Padding(
                   padding: const EdgeInsets.all(10),
                   child: Column(
@@ -134,49 +170,80 @@ class _CoursesScreenState extends State<CoursesScreen>
                       Text(
                         course['title'],
                         style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
+
+                      const SizedBox(height: 6),
+
                       Text(
-                        "By ${course['instructor']}",
-                        style:
-                            const TextStyle(color: Colors.grey, fontSize: 14),
-                      ),
-                      const SizedBox(height: 10),
-                      if (course['isEnrolled'])
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            LinearProgressIndicator(
-                              value: course['progress'],
-                              color: const Color.fromARGB(255, 17, 51, 96),
-                              backgroundColor: Colors.grey[300],
-                              minHeight: 6,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            const SizedBox(height: 5),
-                            Text(
-                              "Progress: ${(course['progress'] * 100).toInt()}%",
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          ],
-                        )
-                      else
-                        ElevatedButton(
-                          onPressed: () {},
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                const Color.fromARGB(255, 17, 51, 96),
-                            foregroundColor: Colors.white,
-                            minimumSize: const Size(double.infinity, 36),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text("Enroll"),
+                        "Created: ${DateTime.fromMillisecondsSinceEpoch(
+                          course['createdAt'],
+                        ).toIso8601String().split('T').first}",
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
                         ),
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      isEnrolledTab
+                        ? ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => CourseDetailScreen(
+                                    courseTitle: course['title'],
+                                    enrolledStudents: course['enrolled'] ?? 0,
+                                    imageUrl: course['imageUrl'] ?? '', 
+                                    description: course['description'], 
+                                    videoUrl: course['videoUrl'], 
+                                    createdAt: course['createdAt'], // network URL
+                                  ),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(double.infinity, 36),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text("View Course"),
+                          )
+                        : ElevatedButton(
+                            onPressed: () async {
+                              try {                                
+                                await enrollInCourse(
+                                  courseUid: course['courseUid'],
+                                );
+
+                                await fetchAllCourses();
+                                await fetchEnrolledCourses();
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text("Failed to enroll: $e")),
+                                );
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color.fromARGB(255, 17, 51, 96),
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(double.infinity, 36),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text("Enroll"),
+                          ),
+
                     ],
                   ),
                 ),
