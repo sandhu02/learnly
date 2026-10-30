@@ -69,6 +69,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
       });
     }
   }
+
   Future<void> pickCoverImage() async {
     final XFile? image =
         await _picker.pickImage(source: ImageSource.gallery);
